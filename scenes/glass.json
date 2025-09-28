@@ -26,7 +26,7 @@
         {
             "TYPE":"Refractive",
             "RGB":[1.0, 1.0, 1.0],
-            "REFRACTION":1.5
+            "REFRACTION":1.2
         },
         "glass_blue":
         {
@@ -38,6 +38,12 @@
         {
             "TYPE":"Specular",
             "RGB":[0.98, 0.98, 0.98],
+            "ROUGHNESS":0.0
+        },
+        "specular_red":
+        {
+            "TYPE":"Specular",
+            "RGB":[0.9, 0.1, 0.1],
             "ROUGHNESS":0.0
         },
         "red_light":
@@ -56,7 +62,9 @@
         "FILE":"glass",
         "EYE":[0.0,5.0,10.5],
         "LOOKAT":[0.0,5.0,0.0],
-        "UP":[0.0,1.0,0.0]
+        "UP":[0.0,1.0,0.0],
+        "LENS_RADIUS":0.3,
+        "FOCAL_DISTANCE":11.5
     },
     "Objects":
     [
@@ -111,17 +119,17 @@
         },
         {
             "TYPE":"sphere",
-            "MATERIAL":"glass_blue",
-            "TRANS":[1.5,4.0,0.0],
+            "MATERIAL":"specular_white",
+            "TRANS":[1.0,4.0,-3.5],
             "ROTAT":[0.0,0.0,0.0],
-            "SCALE":[2.5,2.5,2.5]
+            "SCALE":[4.5,4.5,4.5]
         },
         {
             "TYPE":"sphere",
-            "MATERIAL":"specular_white",
-            "TRANS":[1.8,2.0,3.5],
+            "MATERIAL":"specular_red",
+            "TRANS":[2.0,2.0,3.0],
             "ROTAT":[0.0,0.0,0.0],
-            "SCALE":[2.5,2.5,2.5]
+            "SCALE":[3.5,3.5,3.5]
         },
         {
             "TYPE":"cube",

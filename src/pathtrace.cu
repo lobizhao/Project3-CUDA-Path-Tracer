@@ -8,10 +8,12 @@
 #include <thrust/remove.h>
 #include <thrust/partition.h>
 
-// Feature toggles
-#define SORT_MATERIAL 1
+//hw toggles
+#define DEPTH_OF_FIELD 1
+#define SORT_MATERIAL 0
 #define COMPACTION 1
 #define ANTI_ALIASING 1
+
 
 #include "sceneStructs.h"
 #include "scene.h"
@@ -163,24 +165,40 @@ __global__ void generateRayFromCamera(Camera cam, int iter, int traceDepth, Path
         int index = x + (y * cam.resolution.x);
         PathSegment& segment = pathSegments[index];
 
-        segment.ray.origin = cam.position;
-        segment.color = glm::vec3(1.0f, 1.0f, 1.0f);
-
-        // Part 1
         thrust::default_random_engine rng = makeSeededRandomEngine(iter, index, 0);
         thrust::uniform_real_distribution<float> u01(0, 1);
         
-        //float jitterX = u01(rng) - 0.5f;
-        //float jitterY = u01(rng) - 0.5f;
-
+#if ANTI_ALIASING
         float jitterX = u01(rng);
         float jitterY = u01(rng);
+#else
+        float jitterX = 0.5f;
+        float jitterY = 0.5f;
+#endif
         
-        segment.ray.direction = glm::normalize(cam.view
+        // Calculate ray direction to focal plane
+        glm::vec3 rayDir = glm::normalize(cam.view
             - cam.right * cam.pixelLength.x * ((float)x + jitterX - (float)cam.resolution.x * 0.5f)
             - cam.up * cam.pixelLength.y * ((float)y + jitterY - (float)cam.resolution.y * 0.5f)
         );
-
+        
+#if DEPTH_OF_FIELD
+        // Calculate focal point
+        glm::vec3 focalPoint = cam.position + cam.focalDistance * rayDir;
+        
+        // Sample point on lens (circular aperture)
+        float theta = u01(rng) * 2.0f * 3.14159265f;
+        float r = cam.lensRadius * sqrt(u01(rng));
+        glm::vec3 lensOffset = r * (cos(theta) * cam.right + sin(theta) * cam.up);
+        
+        segment.ray.origin = cam.position + lensOffset;
+        segment.ray.direction = glm::normalize(focalPoint - segment.ray.origin);
+#else
+        segment.ray.origin = cam.position;
+        segment.ray.direction = rayDir;
+#endif
+        
+        segment.color = glm::vec3(1.0f, 1.0f, 1.0f);
         segment.pixelIndex = index;
         segment.remainingBounces = traceDepth;
     }

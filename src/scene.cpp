@@ -125,6 +125,10 @@ void Scene::loadFromJSON(const std::string& jsonName)
 
     camera.view = glm::normalize(camera.lookAt - camera.position);
 
+    //for part 2 - 02 depth of field
+    camera.lensRadius = cameraData.contains("LENS_RADIUS") ? (float)cameraData["LENS_RADIUS"] : 0.1f;
+    camera.focalDistance = cameraData.contains("FOCAL_DISTANCE") ? (float)cameraData["FOCAL_DISTANCE"] : glm::length(camera.lookAt - camera.position);
+    
     //set up render camera stuff
     int arraylen = camera.resolution.x * camera.resolution.y;
     state.image.resize(arraylen);

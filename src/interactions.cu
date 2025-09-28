@@ -65,21 +65,33 @@ __host__ __device__ void scatterRay(
         float cosTheta = glm::dot(-incident, normal);
         bool entering = cosTheta > 0;
         
-        float ior = entering ? 1.0f / m.indexOfRefraction : m.indexOfRefraction;
+        float eta = entering ? 1.0f / m.indexOfRefraction : m.indexOfRefraction;
         glm::vec3 n = entering ? normal : -normal;
+        cosTheta = abs(cosTheta);
         
-        // Fresnel reflection probability
-        float fresnel = schlickFresnel(abs(cosTheta), ior);
+        // Fresnel reflection probability (use material IOR, not eta)
+        float fresnel = schlickFresnel(cosTheta, m.indexOfRefraction);
         
         if (u01(rng) < fresnel) {
             // Reflection
             pathSegment.ray.direction = glm::reflect(incident, n);
+            pathSegment.ray.origin = intersect + 0.001f * n;
         } else {
             // Refraction
-            pathSegment.ray.direction = glm::refract(incident, n, ior);
+            glm::vec3 refracted = glm::refract(incident, n, eta);
+            if (glm::length(refracted) < 0.001f) {
+                // Total internal reflection
+                pathSegment.ray.direction = glm::reflect(incident, n);
+                pathSegment.ray.origin = intersect + 0.001f * n;
+            } else {
+                pathSegment.ray.direction = refracted;
+                pathSegment.ray.origin = intersect - 0.001f * n;
+            }
         }
-        
-        pathSegment.ray.origin = intersect + 0.001f * pathSegment.ray.direction;
+    } else if (m.hasReflective > 0.0f) {
+        // Perfect specular reflection
+        pathSegment.ray.direction = glm::reflect(pathSegment.ray.direction, normal);
+        pathSegment.ray.origin = intersect + 0.001f * normal;
     } else {
         // Diffuse material
         pathSegment.ray.direction = calculateRandomDirectionInHemisphere(normal, rng);
