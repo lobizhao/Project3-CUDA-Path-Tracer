@@ -44,6 +44,12 @@ __host__ __device__ glm::vec3 calculateRandomDirectionInHemisphere(
         + sin(around) * over * perpendicularDirection2;
 }
 
+__host__ __device__ float schlickFresnel(float cosTheta, float ior) {
+    float r0 = (1.0f - ior) / (1.0f + ior);
+    r0 = r0 * r0;
+    return r0 + (1.0f - r0) * pow(1.0f - cosTheta, 5.0f);
+}
+
 __host__ __device__ void scatterRay(
     PathSegment& pathSegment,
     glm::vec3 intersect,
@@ -51,12 +57,34 @@ __host__ __device__ void scatterRay(
     const Material& m,
     thrust::default_random_engine& rng)
 {
-    // TODO: implement this.
-    // A basic implementation of pure-diffuse shading will just call the
-    // calculateRandomDirectionInHemisphere defined above.
-
-    //diffuseBRDF
-    pathSegment.ray.direction = calculateRandomDirectionInHemisphere(normal, rng);
+    thrust::uniform_real_distribution<float> u01(0, 1);
+    
+    if (m.hasRefractive > 0.0f) {
+        // Refractive material (glass)
+        glm::vec3 incident = pathSegment.ray.direction;
+        float cosTheta = glm::dot(-incident, normal);
+        bool entering = cosTheta > 0;
+        
+        float ior = entering ? 1.0f / m.indexOfRefraction : m.indexOfRefraction;
+        glm::vec3 n = entering ? normal : -normal;
+        
+        // Fresnel reflection probability
+        float fresnel = schlickFresnel(abs(cosTheta), ior);
+        
+        if (u01(rng) < fresnel) {
+            // Reflection
+            pathSegment.ray.direction = glm::reflect(incident, n);
+        } else {
+            // Refraction
+            pathSegment.ray.direction = glm::refract(incident, n, ior);
+        }
+        
+        pathSegment.ray.origin = intersect + 0.001f * pathSegment.ray.direction;
+    } else {
+        // Diffuse material
+        pathSegment.ray.direction = calculateRandomDirectionInHemisphere(normal, rng);
+        pathSegment.ray.origin = intersect + 0.001f * normal;
+    }
+    
     pathSegment.color *= m.color;
-    pathSegment.ray.origin = intersect + 0.01f * pathSegment.ray.direction;
 }

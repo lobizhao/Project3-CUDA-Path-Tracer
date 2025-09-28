@@ -8,6 +8,11 @@
 #include <thrust/remove.h>
 #include <thrust/partition.h>
 
+// Feature toggles
+#define SORT_MATERIAL 1
+#define COMPACTION 1
+#define ANTI_ALIASING 1
+
 #include "sceneStructs.h"
 #include "scene.h"
 #include "glm/glm.hpp"
@@ -47,6 +52,13 @@ struct IsAlive {
     __host__ __device__
         bool operator()(const PathSegment& s) const {
         return s.remainingBounces > 0;
+    }
+};
+
+struct MaterialComparator {
+    __host__ __device__
+        bool operator()(const ShadeableIntersection& a, const ShadeableIntersection& b) const {
+        return a.materialId < b.materialId;
     }
 };
 
@@ -367,7 +379,7 @@ void pathtrace(uchar4* pbo, int frame, int iter)
         (cam.resolution.y + blockSize2d.y - 1) / blockSize2d.y);
 
     // 1D block for path tracing
-    const int blockSize1d = 128;
+    const int blockSize1d = 256;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -425,6 +437,13 @@ void pathtrace(uchar4* pbo, int frame, int iter)
         checkCUDAError("trace one bounce");
 
         //replace shadeMaterial
+#if SORT_MATERIAL
+        // Sort by material ID to reduce warp divergence
+        thrust::stable_sort_by_key(thrust::device,
+            dev_intersections, dev_intersections + num_paths,
+            dev_paths, MaterialComparator());
+#endif
+
         shadeMaterial_with_BSDF << <numblocksPathSegmentTracing, blockSize1d >> > (
             iter,
             num_paths,
@@ -435,9 +454,11 @@ void pathtrace(uchar4* pbo, int frame, int iter)
             );
         checkCUDAError("shade and scatter");
 
+#if COMPACTION
         auto lastPath = dev_paths + num_paths;
         auto mid = thrust::stable_partition(thrust::device, dev_paths, lastPath, IsAlive{});
-        num_paths = mid - dev_paths; 
+        num_paths = mid - dev_paths;
+#endif 
 
         if (guiData != NULL) {
             guiData->TracedDepth = depth + 1;
