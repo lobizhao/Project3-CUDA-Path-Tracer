@@ -22,49 +22,22 @@
             "TYPE":"Diffuse",
             "RGB":[0.35, 0.85, 0.35]
         },
-        "glass_clear":
+        "suzanne_material":
         {
-            "TYPE":"Refractive",
-            "RGB":[1.0, 1.0, 1.0],
-            "REFRACTION":1.2
-        },
-        "glass_blue":
-        {
-            "TYPE":"Refractive",
-            "RGB":[0.95, 0.98, 1.0],
-            "REFRACTION":1.33
-        },
-        "specular_white":
-        {
-            "TYPE":"Specular",
-            "RGB":[0.98, 0.98, 0.98],
-            "ROUGHNESS":0.0
-        },
-        "specular_red":
-        {
-            "TYPE":"Specular",
-            "RGB":[0.9, 0.1, 0.1],
-            "ROUGHNESS":0.0
-        },
-        "red_light":
-        {
-            "TYPE":"Emitting",
-            "RGB":[1.0, 0.3, 0.3],
-            "EMITTANCE":3.0
+            "TYPE":"Diffuse",
+            "RGB":[0.7, 0.7, 0.9]
         }
     },
     "Camera":
     {
-        "RES":[800,800],
+        "RES":[600,600],
         "FOVY":45.0,
-        "ITERATIONS":100,
-        "DEPTH":6,
-        "FILE":"glass",
+        "ITERATIONS":1000,
+        "DEPTH":5,
+        "FILE":"cornell_suzanne",
         "EYE":[0.0,5.0,10.5],
         "LOOKAT":[0.0,5.0,0.0],
-        "UP":[0.0,1.0,0.0],
-        "LENS_RADIUS":0.3,
-        "FOCAL_DISTANCE":11.5
+        "UP":[0.0,1.0,0.0]
     },
     "Objects":
     [
@@ -111,32 +84,12 @@
             "SCALE":[0.01,10.0,10.0]
         },
         {
-            "TYPE":"sphere",
-            "MATERIAL":"glass_clear",
-            "TRANS":[-1.6,4.0,3.5],
+            "TYPE":"mesh",
+            "MATERIAL":"suzanne_material",
+            "FILE":"../scenes/suzanne.obj",
+            "TRANS":[0.0,2.0,0.0],
             "ROTAT":[0.0,0.0,0.0],
-            "SCALE":[3.5,3.5,3.5]
-        },
-        {
-            "TYPE":"sphere",
-            "MATERIAL":"specular_white",
-            "TRANS":[1.0,4.0,-3.5],
-            "ROTAT":[0.0,0.0,0.0],
-            "SCALE":[4.5,4.5,4.5]
-        },
-        {
-            "TYPE":"sphere",
-            "MATERIAL":"specular_red",
-            "TRANS":[2.0,2.0,3.0],
-            "ROTAT":[0.0,0.0,0.0],
-            "SCALE":[3.5,3.5,3.5]
-        },
-        {
-            "TYPE":"cube",
-            "MATERIAL":"light",
-            "TRANS":[5.0,5.0,3.0],
-            "ROTAT":[0.0,0.0,0.0],
-            "SCALE":[0.2,2.0,3.0]
+            "SCALE":[1.5,1.5,1.5]
         }
     ]
 }

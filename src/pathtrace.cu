@@ -10,7 +10,7 @@
 
 //hw toggles
 #define DEPTH_OF_FIELD 0
-#define SORT_MATERIAL 1
+#define SORT_MATERIAL 0
 #define COMPACTION 1
 #define ANTI_ALIASING 0
 #define RUSSIAN_ROULETTE 1
@@ -66,13 +66,12 @@ struct MaterialComparator {
     }
 };
 
-// Wang Hash for better random distribution
-__host__ __device__ uint32_t wangHash(uint32_t seed) {
-    seed = (seed ^ 61) ^ (seed >> 16);
-    seed *= 9;
-    seed = seed ^ (seed >> 4);
-    seed *= 0x27d4eb2d;
-    seed = seed ^ (seed >> 15);
+__host__ __device__ uint32_t fastHash(uint32_t seed) {
+    seed ^= seed >> 16;
+    seed *= 0x85ebca6b;
+    seed ^= seed >> 13;
+    seed *= 0xc2b2ae35;
+    seed ^= seed >> 16;
     return seed;
 }
 
@@ -80,12 +79,9 @@ __host__ __device__
 thrust::default_random_engine makeSeededRandomEngine(int iter, int index, int depth)
 {
 #if BETTER_RANDOM
-    // Better random sequence using Wang Hash
-    uint32_t seed = wangHash(index + iter * 1000000 + depth * 10000);
-    seed = wangHash(seed + iter);
-    return thrust::default_random_engine(seed);
+    uint32_t seed = index + (iter << 16) + (depth << 8);
+    return thrust::default_random_engine(fastHash(seed));
 #else
-    // Original hash method
     int h = utilhash((1 << 31) | (depth << 22) | iter) ^ utilhash(index);
     return thrust::default_random_engine(h);
 #endif
@@ -252,8 +248,6 @@ __global__ void computeIntersections(
         glm::vec3 tmp_intersect;
         glm::vec3 tmp_normal;
 
-        // naive parse through global geoms
-
         for (int i = 0; i < geoms_size; i++)
         {
             Geom& geom = geoms[i];
@@ -266,10 +260,7 @@ __global__ void computeIntersections(
             {
                 t = sphereIntersectionTest(geom, pathSegment.ray, tmp_intersect, tmp_normal, outside);
             }
-            // TODO: add more intersection tests here... triangle? metaball? CSG?
 
-            // Compute the minimum t from the intersection tests to determine what
-            // scene geometry object was hit first.
             if (t > 0.0f && t_min > t)
             {
                 t_min = t;
@@ -476,8 +467,7 @@ void pathtrace(uchar4* pbo, int frame, int iter)
 
         //replace shadeMaterial
 #if SORT_MATERIAL
-        // Sort by material ID only every 2 bounces to reduce overhead
-        if (depth % 2 == 0) {
+        if (depth == 0) {
             thrust::stable_sort_by_key(thrust::device,
                 dev_intersections, dev_intersections + num_paths,
                 dev_paths, MaterialComparator());
@@ -495,7 +485,6 @@ void pathtrace(uchar4* pbo, int frame, int iter)
         checkCUDAError("shade and scatter");
 
 #if COMPACTION
-        // Stream compaction only every 2 bounces to reduce overhead
         if (depth % 2 == 1 || depth == traceDepth - 1) {
             auto lastPath = dev_paths + num_paths;
             auto mid = thrust::stable_partition(thrust::device, dev_paths, lastPath, IsAlive{});

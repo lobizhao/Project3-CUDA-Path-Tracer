@@ -47,7 +47,9 @@ __host__ __device__ glm::vec3 calculateRandomDirectionInHemisphere(
 __host__ __device__ float schlickFresnel(float cosTheta, float ior) {
     float r0 = (1.0f - ior) / (1.0f + ior);
     r0 = r0 * r0;
-    return r0 + (1.0f - r0) * pow(1.0f - cosTheta, 5.0f);
+    float x = 1.0f - cosTheta;
+    float x2 = x * x;
+    return r0 + (1.0f - r0) * x2 * x2 * x;
 }
 
 __host__ __device__ void scatterRay(
@@ -60,23 +62,12 @@ __host__ __device__ void scatterRay(
     thrust::uniform_real_distribution<float> u01(0, 1);
     
 #if RUSSIAN_ROULETTE
-    // Russian Roulette path termination after 3 bounces
-    const int MIN_BOUNCES = 3;
-    const float MAX_SURVIVAL_PROB = 0.95f;
-    
-    if (pathSegment.remainingBounces < MIN_BOUNCES) {
-        // Calculate survival probability based on path throughput
-        float luminance = 0.299f * pathSegment.color.r + 0.587f * pathSegment.color.g + 0.114f * pathSegment.color.b;
-        float survivalProb = glm::min(luminance, MAX_SURVIVAL_PROB);
-        
-        if (u01(rng) > survivalProb) {
-            // Terminate path
+    if (pathSegment.remainingBounces < 3) {
+        if (u01(rng) > 0.8f) {
             pathSegment.remainingBounces = 0;
             return;
         }
-        
-        // Boost color to maintain unbiased estimate
-        pathSegment.color /= survivalProb;
+        pathSegment.color *= 1.25f;
     }
 #endif
     
