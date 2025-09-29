@@ -59,6 +59,27 @@ __host__ __device__ void scatterRay(
 {
     thrust::uniform_real_distribution<float> u01(0, 1);
     
+#if RUSSIAN_ROULETTE
+    // Russian Roulette path termination after 3 bounces
+    const int MIN_BOUNCES = 3;
+    const float MAX_SURVIVAL_PROB = 0.95f;
+    
+    if (pathSegment.remainingBounces < MIN_BOUNCES) {
+        // Calculate survival probability based on path throughput
+        float luminance = 0.299f * pathSegment.color.r + 0.587f * pathSegment.color.g + 0.114f * pathSegment.color.b;
+        float survivalProb = glm::min(luminance, MAX_SURVIVAL_PROB);
+        
+        if (u01(rng) > survivalProb) {
+            // Terminate path
+            pathSegment.remainingBounces = 0;
+            return;
+        }
+        
+        // Boost color to maintain unbiased estimate
+        pathSegment.color /= survivalProb;
+    }
+#endif
+    
     if (m.hasRefractive > 0.0f) {
         // Refractive material (glass)
         glm::vec3 incident = pathSegment.ray.direction;

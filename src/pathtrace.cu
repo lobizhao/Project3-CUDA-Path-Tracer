@@ -9,10 +9,12 @@
 #include <thrust/partition.h>
 
 //hw toggles
-#define DEPTH_OF_FIELD 1
-#define SORT_MATERIAL 0
+#define DEPTH_OF_FIELD 0
+#define SORT_MATERIAL 1
 #define COMPACTION 1
-#define ANTI_ALIASING 1
+#define ANTI_ALIASING 0
+#define RUSSIAN_ROULETTE 1
+#define BETTER_RANDOM 1
 
 
 #include "sceneStructs.h"
@@ -23,7 +25,7 @@
 #include "intersections.h"
 #include "interactions.h"
 
-#define ERRORCHECK 1
+#define ERRORCHECK 0
 
 #define FILENAME (strrchr(__FILE__, '/') ? strrchr(__FILE__, '/') + 1 : __FILE__)
 #define checkCUDAError(msg) checkCUDAErrorFn(msg, FILENAME, __LINE__)
@@ -64,11 +66,29 @@ struct MaterialComparator {
     }
 };
 
+// Wang Hash for better random distribution
+__host__ __device__ uint32_t wangHash(uint32_t seed) {
+    seed = (seed ^ 61) ^ (seed >> 16);
+    seed *= 9;
+    seed = seed ^ (seed >> 4);
+    seed *= 0x27d4eb2d;
+    seed = seed ^ (seed >> 15);
+    return seed;
+}
+
 __host__ __device__
 thrust::default_random_engine makeSeededRandomEngine(int iter, int index, int depth)
 {
+#if BETTER_RANDOM
+    // Better random sequence using Wang Hash
+    uint32_t seed = wangHash(index + iter * 1000000 + depth * 10000);
+    seed = wangHash(seed + iter);
+    return thrust::default_random_engine(seed);
+#else
+    // Original hash method
     int h = utilhash((1 << 31) | (depth << 22) | iter) ^ utilhash(index);
     return thrust::default_random_engine(h);
+#endif
 }
 
 //Kernel that writes the image to the OpenGL PBO directly.
@@ -396,8 +416,8 @@ void pathtrace(uchar4* pbo, int frame, int iter)
         (cam.resolution.x + blockSize2d.x - 1) / blockSize2d.x,
         (cam.resolution.y + blockSize2d.y - 1) / blockSize2d.y);
 
-    // 1D block for path tracing
-    const int blockSize1d = 256;
+    // 1D block for path tracing - optimized for memory coalescing
+    const int blockSize1d = 128;
 
     ///////////////////////////////////////////////////////////////////////////
 
@@ -456,10 +476,12 @@ void pathtrace(uchar4* pbo, int frame, int iter)
 
         //replace shadeMaterial
 #if SORT_MATERIAL
-        // Sort by material ID to reduce warp divergence
-        thrust::stable_sort_by_key(thrust::device,
-            dev_intersections, dev_intersections + num_paths,
-            dev_paths, MaterialComparator());
+        // Sort by material ID only every 2 bounces to reduce overhead
+        if (depth % 2 == 0) {
+            thrust::stable_sort_by_key(thrust::device,
+                dev_intersections, dev_intersections + num_paths,
+                dev_paths, MaterialComparator());
+        }
 #endif
 
         shadeMaterial_with_BSDF << <numblocksPathSegmentTracing, blockSize1d >> > (
@@ -473,9 +495,12 @@ void pathtrace(uchar4* pbo, int frame, int iter)
         checkCUDAError("shade and scatter");
 
 #if COMPACTION
-        auto lastPath = dev_paths + num_paths;
-        auto mid = thrust::stable_partition(thrust::device, dev_paths, lastPath, IsAlive{});
-        num_paths = mid - dev_paths;
+        // Stream compaction only every 2 bounces to reduce overhead
+        if (depth % 2 == 1 || depth == traceDepth - 1) {
+            auto lastPath = dev_paths + num_paths;
+            auto mid = thrust::stable_partition(thrust::device, dev_paths, lastPath, IsAlive{});
+            num_paths = mid - dev_paths;
+        }
 #endif 
 
         if (guiData != NULL) {
@@ -492,9 +517,9 @@ void pathtrace(uchar4* pbo, int frame, int iter)
     // Send results to OpenGL buffer for rendering
     sendImageToPBO<<<blocksPerGrid2d, blockSize2d>>>(pbo, cam.resolution, iter, dev_image);
 
-    // Retrieve image from GPU
-    cudaMemcpy(hst_scene->state.image.data(), dev_image,
-        pixelcount * sizeof(glm::vec3), cudaMemcpyDeviceToHost);
+    // Only copy to CPU occasionally for debugging (major performance killer)
+    // cudaMemcpy(hst_scene->state.image.data(), dev_image,
+    //     pixelcount * sizeof(glm::vec3), cudaMemcpyDeviceToHost);
 
     checkCUDAError("pathtrace");
 }
