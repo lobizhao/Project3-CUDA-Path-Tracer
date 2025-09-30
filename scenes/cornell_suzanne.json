@@ -26,14 +26,26 @@
         {
             "TYPE":"Diffuse",
             "RGB":[0.7, 0.7, 0.9]
+        },
+        "specular_white":
+        {
+            "TYPE":"Specular",
+            "RGB":[0.98, 0.98, 0.98],
+            "ROUGHNESS":0.0
+        },
+        "glass_clear":
+        {
+            "TYPE":"Refractive",
+            "RGB":[1.0, 1.0, 1.0],
+            "REFRACTION":1.2
         }
     },
     "Camera":
     {
-        "RES":[600,600],
+        "RES":[1000,1000],
         "FOVY":45.0,
-        "ITERATIONS":1000,
-        "DEPTH":5,
+        "ITERATIONS":100,
+        "DEPTH":8,
         "FILE":"cornell_suzanne",
         "EYE":[0.0,5.0,10.5],
         "LOOKAT":[0.0,5.0,0.0],
@@ -85,11 +97,18 @@
         },
         {
             "TYPE":"mesh",
-            "MATERIAL":"suzanne_material",
+            "MATERIAL":"glass_clear",
             "FILE":"../scenes/suzanne.obj",
-            "TRANS":[0.0,2.0,0.0],
+            "TRANS":[0.0,3.5,0.0],
             "ROTAT":[0.0,0.0,0.0],
-            "SCALE":[1.5,1.5,1.5]
+            "SCALE":[2.8,2.8,2.8]
+        },
+        {
+            "TYPE":"cube",
+            "MATERIAL":"light",
+            "TRANS":[5.0,5.0,3.0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[0.2,2.0,3.0]
         }
     ]
 }
