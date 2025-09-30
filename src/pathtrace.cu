@@ -118,6 +118,7 @@ static Geom* dev_geoms = NULL;
 static Material* dev_materials = NULL;
 static PathSegment* dev_paths = NULL;
 static ShadeableIntersection* dev_intersections = NULL;
+static Triangle* dev_triangles = NULL;
 // TODO: static variables for device memory, any extra info you need, etc
 // ...
 
@@ -147,7 +148,10 @@ void pathtraceInit(Scene* scene)
     cudaMalloc(&dev_intersections, pixelcount * sizeof(ShadeableIntersection));
     cudaMemset(dev_intersections, 0, pixelcount * sizeof(ShadeableIntersection));
 
-    // TODO: initialize any extra device memeory you need
+    if (!scene->triangles.empty()) {
+        cudaMalloc(&dev_triangles, scene->triangles.size() * sizeof(Triangle));
+        cudaMemcpy(dev_triangles, scene->triangles.data(), scene->triangles.size() * sizeof(Triangle), cudaMemcpyHostToDevice);
+    }
 
     checkCUDAError("pathtraceInit");
 }
@@ -159,6 +163,7 @@ void pathtraceFree()
     cudaFree(dev_geoms);
     cudaFree(dev_materials);
     cudaFree(dev_intersections);
+    cudaFree(dev_triangles);
     // TODO: clean up any extra device memory you created
 
     checkCUDAError("pathtraceFree");
@@ -230,6 +235,8 @@ __global__ void computeIntersections(
     PathSegment* pathSegments,
     Geom* geoms,
     int geoms_size,
+    Triangle* triangles,
+    int triangles_size,
     ShadeableIntersection* intersections)
 {
     int path_index = blockIdx.x * blockDim.x + threadIdx.x;
@@ -270,6 +277,21 @@ __global__ void computeIntersections(
             }
         }
 
+        // Test triangles
+        for (int i = 0; i < triangles_size; i++)
+        {
+            Triangle& triangle = triangles[i];
+            t = triangleIntersectionTest(triangle, pathSegment.ray, tmp_intersect, tmp_normal, outside);
+
+            if (t > 0.0f && t_min > t)
+            {
+                t_min = t;
+                hit_geom_index = geoms_size + i; // Offset by geoms count
+                intersect_point = tmp_intersect;
+                normal = tmp_normal;
+            }
+        }
+
         if (hit_geom_index == -1)
         {
             intersections[path_index].t = -1.0f;
@@ -278,7 +300,11 @@ __global__ void computeIntersections(
         {
             // The ray hits something
             intersections[path_index].t = t_min;
-            intersections[path_index].materialId = geoms[hit_geom_index].materialid;
+            if (hit_geom_index < geoms_size) {
+                intersections[path_index].materialId = geoms[hit_geom_index].materialid;
+            } else {
+                intersections[path_index].materialId = triangles[hit_geom_index - geoms_size].materialid;
+            }
             intersections[path_index].surfaceNormal = normal;
         }
     }
@@ -461,6 +487,8 @@ void pathtrace(uchar4* pbo, int frame, int iter)
             dev_paths,
             dev_geoms,
             hst_scene->geoms.size(),
+            dev_triangles,
+            hst_scene->triangles.size(),
             dev_intersections
             );
         checkCUDAError("trace one bounce");

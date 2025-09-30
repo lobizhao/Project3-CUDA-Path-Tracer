@@ -1,4 +1,5 @@
 #include "scene.h"
+#include "objLoader.h"
 
 #include "utilities.h"
 
@@ -74,6 +75,37 @@ void Scene::loadFromJSON(const std::string& jsonName)
     for (const auto& p : objectsData)
     {
         const auto& type = p["TYPE"];
+        
+        if (type == "mesh")
+        {
+            // Load OBJ mesh
+            std::string filename = p["FILE"];
+            int materialId = MatNameToID[p["MATERIAL"]];
+            auto meshTriangles = OBJLoader::loadOBJ(filename, materialId);
+            
+            // Apply transformations to triangles
+            const auto& trans = p["TRANS"];
+            const auto& rotat = p["ROTAT"];
+            const auto& scale = p["SCALE"];
+            glm::vec3 translation = glm::vec3(trans[0], trans[1], trans[2]);
+            glm::vec3 rotation = glm::vec3(rotat[0], rotat[1], rotat[2]);
+            glm::vec3 scaleVec = glm::vec3(scale[0], scale[1], scale[2]);
+            
+            glm::mat4 transform = utilityCore::buildTransformationMatrix(translation, rotation, scaleVec);
+            glm::mat3 normalMat = glm::mat3(glm::transpose(glm::inverse(transform)));
+            
+            for (auto& tri : meshTriangles) {
+                tri.v0 = glm::vec3(transform * glm::vec4(tri.v0, 1.0f));
+                tri.v1 = glm::vec3(transform * glm::vec4(tri.v1, 1.0f));
+                tri.v2 = glm::vec3(transform * glm::vec4(tri.v2, 1.0f));
+                tri.n0 = glm::normalize(normalMat * tri.n0);
+                tri.n1 = glm::normalize(normalMat * tri.n1);
+                tri.n2 = glm::normalize(normalMat * tri.n2);
+                triangles.push_back(tri);
+            }
+            continue;
+        }
+        
         Geom newGeom;
         if (type == "cube")
         {
