@@ -58,6 +58,7 @@ set(headers
     src/sceneStructs.h
     src/utilities.h
     src/objLoader.h
+    src/texture.h
 )
 
 set(sources
@@ -71,6 +72,7 @@ set(sources
     src/scene.cpp
     src/utilities.cpp
     src/objLoader.cpp
+    src/texture.cpp
 )
 
 set(imgui_headers

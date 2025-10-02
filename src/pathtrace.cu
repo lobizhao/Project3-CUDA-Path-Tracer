@@ -8,12 +8,28 @@
 #include <thrust/remove.h>
 #include <thrust/partition.h>
 
+// Environment map sampling function
+__device__ glm::vec3 Evaluate_EnvMap(Ray& r, cudaTextureObject_t envmapHandle) {
+    if (envmapHandle == 0) return glm::vec3(0.0f);
+    
+    glm::vec3 dir = glm::normalize(r.direction);
+    
+    float phi = atan2f(dir.z, dir.x);
+    float theta = asinf(dir.y);
+    
+    float u = (phi + 3.14159265f) / (2.0f * 3.14159265f);
+    float v = 1.0f - (theta + 3.14159265f / 2.0f) / 3.14159265f;  // Flip V coordinate
+    
+    float4 color = tex2D<float4>(envmapHandle, u, v);
+    return glm::vec3(color.x, color.y, color.z);
+}
+
 //hw toggles
 #define DEPTH_OF_FIELD 0
 #define SORT_MATERIAL 0
 #define COMPACTION 1
-#define ANTI_ALIASING 0
-#define RUSSIAN_ROULETTE 1
+#define ANTI_ALIASING 1
+#define RUSSIAN_ROULETTE 0
 #define BETTER_RANDOM 1
 
 
@@ -119,6 +135,7 @@ static Material* dev_materials = NULL;
 static PathSegment* dev_paths = NULL;
 static ShadeableIntersection* dev_intersections = NULL;
 static Triangle* dev_triangles = NULL;
+static cudaTextureObject_t envmapHandle = 0;
 // TODO: static variables for device memory, any extra info you need, etc
 // ...
 
@@ -152,6 +169,9 @@ void pathtraceInit(Scene* scene)
         cudaMalloc(&dev_triangles, scene->triangles.size() * sizeof(Triangle));
         cudaMemcpy(dev_triangles, scene->triangles.data(), scene->triangles.size() * sizeof(Triangle), cudaMemcpyHostToDevice);
     }
+    
+    // Load environment map to GPU
+    envmapHandle = scene->envMap.loadToCuda();
 
     checkCUDAError("pathtraceInit");
 }
@@ -372,7 +392,8 @@ __global__ void shadeMaterial_with_BSDF(
     ShadeableIntersection* shadeableIntersections,
     PathSegment* pathSegments,
     Material* materials,
-    Geom* geoms)
+    Geom* geoms,
+    cudaTextureObject_t envmapHandle)
 {
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if (idx >= num_paths) {
@@ -400,7 +421,9 @@ __global__ void shadeMaterial_with_BSDF(
         }
     }
     else {
-        path.color = glm::vec3(0.0f);
+        // Sample environment map for missed rays
+        glm::vec3 envCol = Evaluate_EnvMap(path.ray, envmapHandle);
+        path.color *= envCol;
         path.remainingBounces = 0;
     }
 }
@@ -508,7 +531,8 @@ void pathtrace(uchar4* pbo, int frame, int iter)
             dev_intersections,
             dev_paths,
             dev_materials,
-            dev_geoms 
+            dev_geoms,
+            envmapHandle
             );
         checkCUDAError("shade and scatter");
 

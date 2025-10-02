@@ -1,6 +1,7 @@
 #pragma once
 
 #include "sceneStructs.h"
+#include "texture.h"
 #include <vector>
 
 class Scene
@@ -14,4 +15,5 @@ public:
     std::vector<Triangle> triangles;
     std::vector<Material> materials;
     RenderState state;
+    Texture envMap;
 };

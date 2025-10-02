@@ -165,4 +165,13 @@ void Scene::loadFromJSON(const std::string& jsonName)
     int arraylen = camera.resolution.x * camera.resolution.y;
     state.image.resize(arraylen);
     std::fill(state.image.begin(), state.image.end(), glm::vec3());
+    
+    // Load environment map if specified
+    if (data.contains("EnvMap")) {
+        const auto& envMapData = data["EnvMap"];
+        const auto& envmap_path = envMapData["PATH"];
+        std::string fullenvpath = envmap_path.get<std::string>();
+        envMap.loadToCPU(fullenvpath);
+        std::cout << "Loaded environment map: " << fullenvpath << std::endl;
+    }
 }
