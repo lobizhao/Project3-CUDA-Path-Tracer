@@ -2,7 +2,9 @@
 
 #include "sceneStructs.h"
 #include "texture.h"
+#include "bvh.h"
 #include <vector>
+#include <memory>
 
 class Scene
 {
@@ -16,4 +18,5 @@ public:
     std::vector<Material> materials;
     RenderState state;
     Texture envMap;
+    std::unique_ptr<BVHAccel> bvhAccel;
 };

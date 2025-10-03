@@ -6,6 +6,7 @@
 
 #include <string>
 #include <vector>
+#include <limits>
 
 #define BACKGROUND_COLOR (glm::vec3(0.0f))
 

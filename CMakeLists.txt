@@ -59,6 +59,7 @@ set(headers
     src/utilities.h
     src/objLoader.h
     src/texture.h
+    src/bvh.h
 )
 
 set(sources
@@ -73,6 +74,7 @@ set(sources
     src/utilities.cpp
     src/objLoader.cpp
     src/texture.cpp
+    src/bvh.cpp
 )
 
 set(imgui_headers

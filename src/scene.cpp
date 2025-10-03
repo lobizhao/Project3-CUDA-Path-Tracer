@@ -1,5 +1,6 @@
 #include "scene.h"
 #include "objLoader.h"
+#include "bvh.h"
 
 #include "utilities.h"
 
@@ -11,9 +12,44 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
+#include <memory>
+#include <chrono>
 
 using namespace std;
 using json = nlohmann::json;
+
+// Helper function to compute bounds for geometry
+Bounds3f computeGeomBounds(const Geom& geom) {
+    Bounds3f bounds;
+    if (geom.type == SPHERE) {
+        // For sphere, compute bounds in world space
+        glm::vec3 center = glm::vec3(geom.transform * glm::vec4(0, 0, 0, 1));
+        float radius = glm::length(glm::vec3(geom.transform * glm::vec4(0.5f, 0, 0, 0)));
+        bounds.pMin = center - glm::vec3(radius);
+        bounds.pMax = center + glm::vec3(radius);
+    } else if (geom.type == CUBE) {
+        // For cube, transform corners and compute bounds
+        glm::vec3 corners[8] = {
+            {-0.5f, -0.5f, -0.5f}, {0.5f, -0.5f, -0.5f},
+            {-0.5f, 0.5f, -0.5f}, {0.5f, 0.5f, -0.5f},
+            {-0.5f, -0.5f, 0.5f}, {0.5f, -0.5f, 0.5f},
+            {-0.5f, 0.5f, 0.5f}, {0.5f, 0.5f, 0.5f}
+        };
+        bounds = Bounds3f();
+        for (int i = 0; i < 8; ++i) {
+            glm::vec3 worldPos = glm::vec3(geom.transform * glm::vec4(corners[i], 1.0f));
+            bounds = Union(bounds, worldPos);
+        }
+    }
+    return bounds;
+}
+
+Bounds3f computeTriangleBounds(const Triangle& tri) {
+    Bounds3f bounds(tri.v0);
+    bounds = Union(bounds, tri.v1);
+    bounds = Union(bounds, tri.v2);
+    return bounds;
+}
 
 Scene::Scene(string filename)
 {
@@ -173,5 +209,29 @@ void Scene::loadFromJSON(const std::string& jsonName)
         std::string fullenvpath = envmap_path.get<std::string>();
         envMap.loadToCPU(fullenvpath);
         std::cout << "Loaded environment map: " << fullenvpath << std::endl;
+    }
+    
+    // Build BVH for acceleration
+    std::vector<std::shared_ptr<Primitive>> primitives;
+    
+    // Add geometry primitives
+    for (int i = 0; i < geoms.size(); ++i) {
+        Bounds3f bounds = computeGeomBounds(geoms[i]);
+        primitives.push_back(std::make_shared<Primitive>(i, bounds));
+    }
+    
+    // Add triangle primitives (offset by geoms count)
+    for (int i = 0; i < triangles.size(); ++i) {
+        Bounds3f bounds = computeTriangleBounds(triangles[i]);
+        primitives.push_back(std::make_shared<Primitive>(geoms.size() + i, bounds));
+    }
+    
+    if (!primitives.empty()) {
+        auto start = std::chrono::high_resolution_clock::now();
+        bvhAccel = std::make_unique<BVHAccel>(primitives, 1);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        std::cout << "Built BVH with " << bvhAccel->totalNodes << " nodes for " 
+                  << primitives.size() << " primitives in " << duration.count() << "ms" << std::endl;
     }
 }

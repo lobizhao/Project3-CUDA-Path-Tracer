@@ -147,3 +147,17 @@ __host__ __device__ float triangleIntersectionTest(
     
     return t;
 }
+
+__host__ __device__ float AABBIntersect(const glm::vec3& pMin, const glm::vec3& pMax, const Ray& r) {
+    glm::vec3 invDir = 1.0f / r.direction;
+    glm::vec3 t0s = (pMin - r.origin) * invDir;
+    glm::vec3 t1s = (pMax - r.origin) * invDir;
+    
+    glm::vec3 tsmaller = glm::min(t0s, t1s);
+    glm::vec3 tbigger = glm::max(t0s, t1s);
+    
+    float tmin = glm::max(glm::max(tsmaller.x, tsmaller.y), glm::max(tsmaller.z, 0.0f));
+    float tmax = glm::min(tbigger.x, glm::min(tbigger.y, tbigger.z));
+    
+    return (tmax >= tmin) ? tmin : -1.0f;
+}
