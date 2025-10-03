@@ -15,7 +15,7 @@ BVHAccel::BVHAccel(std::vector<std::shared_ptr<Primitive>>& prims, int maxPrimsI
         return;
     }
     
-    // Build BVH from primitives
+    // Build BVH
     std::vector<Primitive> primitiveInfo;
     primitiveInfo.reserve(primitives.size());
     for (size_t i = 0; i < primitives.size(); ++i) {
@@ -30,7 +30,6 @@ BVHAccel::BVHAccel(std::vector<std::shared_ptr<Primitive>>& prims, int maxPrimsI
                                        &totalNodes, orderedPrims);
     primitives.swap(orderedPrims);
     
-    // Allocate and flatten BVH
     nodes = new LinearBVHNode[totalNodes];
     int offset = 0;
     flattenBVHTree(root, &offset);
@@ -46,7 +45,6 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Primitive>& primitiveInfo,
     BVHBuildNode* node = new BVHBuildNode;
     (*totalNodes)++;
     
-    // Compute bounds of all primitives
     Bounds3f bounds;
     for (int i = start; i < end; ++i) {
         bounds = Union(bounds, primitiveInfo[i].bounds);
@@ -54,7 +52,7 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Primitive>& primitiveInfo,
     
     int nPrimitives = end - start;
     if (nPrimitives == 1) {
-        // Create leaf node
+
         int firstPrimOffset = orderedPrims.size();
         for (int i = start; i < end; ++i) {
             int primNum = primitiveInfo[i].geomID;
@@ -64,17 +62,14 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Primitive>& primitiveInfo,
         return node;
     }
     
-    // Compute bound of primitive centroids
     Bounds3f centroidBounds;
     for (int i = start; i < end; ++i) {
         centroidBounds = Union(centroidBounds, primitiveInfo[i].centroid);
     }
     int dim = centroidBounds.MaximumExtent();
     
-    // Partition primitives into two sets and build children
     int mid = (start + end) / 2;
     if (centroidBounds.pMax[dim] == centroidBounds.pMin[dim]) {
-        // Create leaf node if centroids are at same position
         int firstPrimOffset = orderedPrims.size();
         for (int i = start; i < end; ++i) {
             int primNum = primitiveInfo[i].geomID;
@@ -84,19 +79,15 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Primitive>& primitiveInfo,
         return node;
     }
     
-    // SAH partition
     if (nPrimitives <= 2) {
-        // Simple partition for small number of primitives
         std::nth_element(&primitiveInfo[start], &primitiveInfo[mid], &primitiveInfo[end-1]+1,
                         [dim](const Primitive& a, const Primitive& b) {
                             return a.centroid[dim] < b.centroid[dim];
                         });
     } else {
-        // SAH with buckets
         constexpr int nBuckets = 12;
         BucketInfo buckets[nBuckets];
         
-        // Initialize buckets
         for (int i = start; i < end; ++i) {
             int b = nBuckets * ((primitiveInfo[i].centroid[dim] - centroidBounds.pMin[dim]) /
                                (centroidBounds.pMax[dim] - centroidBounds.pMin[dim]));
@@ -105,7 +96,6 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Primitive>& primitiveInfo,
             buckets[b].bounds = Union(buckets[b].bounds, primitiveInfo[i].bounds);
         }
         
-        // Compute costs for splitting after each bucket
         float cost[nBuckets - 1];
         for (int i = 0; i < nBuckets - 1; ++i) {
             Bounds3f b0, b1;
@@ -121,7 +111,6 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Primitive>& primitiveInfo,
             cost[i] = 1 + (count0 * b0.SurfaceArea() + count1 * b1.SurfaceArea()) / bounds.SurfaceArea();
         }
         
-        // Find bucket to split at that minimizes SAH metric
         float minCost = cost[0];
         int minCostSplitBucket = 0;
         for (int i = 1; i < nBuckets - 1; ++i) {
@@ -131,7 +120,6 @@ BVHBuildNode* BVHAccel::recursiveBuild(std::vector<Primitive>& primitiveInfo,
             }
         }
         
-        // Split primitives at selected SAH bucket
         Primitive* pmid = std::partition(&primitiveInfo[start], &primitiveInfo[end-1]+1,
                                        [=](const Primitive& pi) {
                                            int b = nBuckets * ((pi.centroid[dim] - centroidBounds.pMin[dim]) /
@@ -154,11 +142,10 @@ int BVHAccel::flattenBVHTree(BVHBuildNode* node, int* offset) {
     int myOffset = (*offset)++;
     
     if (node->nPrimitives > 0) {
-        // Leaf node - store the actual geometry ID from the first primitive
+        // geometry ID 
         linearNode->geomID = primitives[node->firstPrimOffset]->geomID;
         linearNode->nPrimitives = node->nPrimitives;
     } else {
-        // Interior node
         linearNode->axis = node->splitAxis;
         linearNode->nPrimitives = 0;
         flattenBVHTree(node->children[0], offset);

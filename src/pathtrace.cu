@@ -18,7 +18,7 @@ __device__ glm::vec3 Evaluate_EnvMap(Ray& r, cudaTextureObject_t envmapHandle) {
     float theta = asinf(dir.y);
     
     float u = (phi + 3.14159265f) / (2.0f * 3.14159265f);
-    float v = 1.0f - (theta + 3.14159265f / 2.0f) / 3.14159265f;  // Flip V coordinate
+    float v = 1.0f - (theta + 3.14159265f / 2.0f) / 3.14159265f;  
     
     float4 color = tex2D<float4>(envmapHandle, u, v);
     return glm::vec3(color.x, color.y, color.z);
