@@ -297,21 +297,22 @@ __global__ void computeIntersectionsBVH(
                     
                     glm::vec3 tmp_intersect, tmp_normal;
                     float t = -1.0f;
+                    bool tmp_outside = true;
                     
                     if (geomID < geoms_size) {
                         // Test geometry
                         Geom& geom = geoms[geomID];
                         if (geom.type == CUBE) {
-                            t = boxIntersectionTest(geom, r, tmp_intersect, tmp_normal, outside);
+                            t = boxIntersectionTest(geom, r, tmp_intersect, tmp_normal, tmp_outside);
                         } else if (geom.type == SPHERE) {
-                            t = sphereIntersectionTest(geom, r, tmp_intersect, tmp_normal, outside);
+                            t = sphereIntersectionTest(geom, r, tmp_intersect, tmp_normal, tmp_outside);
                         }
                     } else {
                         // Test triangle
                         int triIdx = geomID - geoms_size;
                         if (triIdx >= 0 && triIdx < triangles_size) {
                             Triangle& triangle = triangles[triIdx];
-                            t = triangleIntersectionTest(triangle, r, tmp_intersect, tmp_normal, outside);
+                            t = triangleIntersectionTest(triangle, r, tmp_intersect, tmp_normal, tmp_outside);
                         }
                     }
                     
@@ -320,6 +321,7 @@ __global__ void computeIntersectionsBVH(
                         hit_geom_index = geomID;
                         intersect_point = tmp_intersect;
                         normal = tmp_normal;
+                        outside = tmp_outside;
                     }
                 } else {
                     // Interior node: test children
@@ -330,7 +332,7 @@ __global__ void computeIntersectionsBVH(
                     float rightHit = AABBIntersect(bvhNodes[rightIndex].bounds.pMin, bvhNodes[rightIndex].bounds.pMax, r);
                     
                     // Traverse closer child first
-                    if (leftHit > 0.0f && rightHit > 0.0f) {
+                    if (leftHit >= 0.0f && rightHit >= 0.0f) {
                         if (leftHit > rightHit) {
                             bvhIdx = rightIndex;
                             stack[ptr++] = leftIndex;
@@ -338,9 +340,9 @@ __global__ void computeIntersectionsBVH(
                             bvhIdx = leftIndex;
                             stack[ptr++] = rightIndex;
                         }
-                    } else if (leftHit > 0.0f) {
+                    } else if (leftHit >= 0.0f) {
                         bvhIdx = leftIndex;
-                    } else if (rightHit > 0.0f) {
+                    } else if (rightHit >= 0.0f) {
                         bvhIdx = rightIndex;
                     } else {
                         if (ptr == 0) break;
@@ -535,7 +537,6 @@ __global__ void shadeMaterial_with_BSDF(
             path.remainingBounces = 0;
         }
         else {
-
             path.remainingBounces--;
             thrust::default_random_engine rng = makeSeededRandomEngine(iter, idx, path.remainingBounces);
             scatterRay(path, intersect_point, intersection.surfaceNormal, material, rng);

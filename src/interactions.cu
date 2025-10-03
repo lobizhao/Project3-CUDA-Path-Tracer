@@ -84,15 +84,17 @@ __host__ __device__ void scatterRay(
                 pathSegment.ray.origin = intersect - 0.001f * n;
             }
         }
+        pathSegment.color *= m.color;
     } else if (m.hasReflective > 0.0f) {
         // Perfect specular reflection
         pathSegment.ray.direction = glm::reflect(pathSegment.ray.direction, normal);
         pathSegment.ray.origin = intersect + 0.001f * normal;
+        pathSegment.color *= m.color;
     } else {
         // Diffuse material
         pathSegment.ray.direction = calculateRandomDirectionInHemisphere(normal, rng);
         pathSegment.ray.origin = intersect + 0.001f * normal;
+        pathSegment.color *= m.color;
     }
-    
-    pathSegment.color *= m.color;
+
 }
