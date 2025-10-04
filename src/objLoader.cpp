@@ -63,6 +63,6 @@ std::vector<Triangle> OBJLoader::loadOBJ(const std::string& filename, int materi
         }
     }
     
-    std::cout << "Loaded " << triangles.size() << " triangles from " << filename << std::endl;
+    //std::cout << "Loaded " << triangles.size() << " triangles from " << filename << std::endl;
     return triangles;
 }

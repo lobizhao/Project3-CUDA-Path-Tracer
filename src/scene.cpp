@@ -220,21 +220,16 @@ void Scene::loadFromJSON(const std::string& jsonName)
         std::cout << "Loaded environment map: " << fullenvpath << std::endl;
     }
     
-    // Build BVH for acceleration
+    // Build BVH
     std::vector<std::shared_ptr<Primitive>> primitives;
-    
-    // Add geometry primitives
     for (int i = 0; i < geoms.size(); ++i) {
         Bounds3f bounds = computeGeomBounds(geoms[i]);
         primitives.push_back(std::make_shared<Primitive>(i, bounds));
     }
-    
-    // Add triangle primitives (offset by geoms count)
     for (int i = 0; i < triangles.size(); ++i) {
         Bounds3f bounds = computeTriangleBounds(triangles[i]);
         primitives.push_back(std::make_shared<Primitive>(geoms.size() + i, bounds));
     }
-    
     if (!primitives.empty()) {
         auto start = std::chrono::high_resolution_clock::now();
         bvhAccel = std::make_unique<BVHAccel>(primitives, 1);

@@ -10,8 +10,8 @@ __host__ __device__ glm::vec3 calculateRandomDirectionInHemisphere(
 {
     thrust::uniform_real_distribution<float> u01(0, 1);
 
-    float up = sqrt(u01(rng)); // cos(theta)
-    float over = sqrt(1 - up * up); // sin(theta)
+    float up = sqrt(u01(rng)); 
+    float over = sqrt(1 - up * up); 
     float around = u01(rng) * TWO_PI;
 
     glm::vec3 directionNotNormal = (abs(normal.x) < SQRT_OF_ONE_THIRD) ? 
@@ -65,18 +65,16 @@ __host__ __device__ void scatterRay(
         glm::vec3 n = entering ? normal : -normal;
         cosTheta = abs(cosTheta);
         
-        // Fresnel reflection probability (use material IOR, not eta)
+        // Fresnel reflection
         float fresnel = schlickFresnel(cosTheta, m.indexOfRefraction);
         
         if (u01(rng) < fresnel) {
-            // Reflection
             pathSegment.ray.direction = glm::reflect(incident, n);
             pathSegment.ray.origin = intersect + 0.001f * n;
         } else {
             // Refraction
             glm::vec3 refracted = glm::refract(incident, n, eta);
             if (glm::length(refracted) < 0.001f) {
-                // Total internal reflection
                 pathSegment.ray.direction = glm::reflect(incident, n);
                 pathSegment.ray.origin = intersect + 0.001f * n;
             } else {
@@ -86,7 +84,7 @@ __host__ __device__ void scatterRay(
         }
         pathSegment.color *= m.color;
     } else if (m.hasReflective > 0.0f) {
-        // Perfect specular reflection
+        // Perfect specular
         pathSegment.ray.direction = glm::reflect(pathSegment.ray.direction, normal);
         pathSegment.ray.origin = intersect + 0.001f * normal;
         pathSegment.color *= m.color;
