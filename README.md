@@ -7,10 +7,11 @@ CUDA Path Tracer
   * [Lobi Zhao - LinkedIn](https://www.linkedin.com/in/lobizhao/), [Lobi Zhao - personal website](https://lobizhao.github.io/).
 * Tested on: Windows 11 Pro, i5-10600KF @ 4.10GHz 32GB, RTX 3080 10GB
 
-![Head](/img/Head.png)
+
 ### Part 1
 #### Performance
 #### analysis
+- Stream Compaction
 ### Part 2
 #### Material 
 #### Geometry
