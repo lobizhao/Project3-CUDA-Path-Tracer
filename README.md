@@ -68,7 +68,7 @@ Implementation: u01(rng) generates random offsets in [0,1) range for ray generat
 - Depth of field
 <table>
   <tr>
-    <td><img src="img/Part2_03.png"block size 128 chart 1"></td>
+    <td><img src="img/part2_02_01.png"block size 128 chart 1"></td>
     <td><img src="img/part2_02.png" alt="block size 128 chart 2"></td>
   </tr>
 </table>
