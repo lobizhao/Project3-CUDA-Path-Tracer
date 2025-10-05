@@ -50,7 +50,9 @@
         "FILE":"cornell",
         "EYE":[0.0,5.0,10.5],
         "LOOKAT":[0.0,5.0,0.0],
-        "UP":[0.0,1.0,0.0]
+        "UP":[0.0,1.0,0.0],
+        "LENS_RADIUS":0.2,
+        "FOCAL_DISTANCE":3.0
     },
     "EnvMap": {
         "PATH": "../scenes/Blue_stripe.hdr"
@@ -58,19 +60,61 @@
     "Objects":
     [
         {
+            "TYPE":"cube",
+            "MATERIAL":"light",
+            "TRANS":[0.0,9.9,1.3],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[3.0,0.3,3.0]
+        },
+        {
+            "TYPE":"cube",
+            "MATERIAL":"diffuse_white",
+            "TRANS":[0.0,0.0,0.0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[10.0,0.01,10.0]
+        },
+        {
+            "TYPE":"cube",
+            "MATERIAL":"diffuse_white",
+            "TRANS":[0.0,10.0,0.0],
+            "ROTAT":[0.0,0.0,90.0],
+            "SCALE":[0.01,10.0,10.0]
+        },
+        {
+            "TYPE":"cube",
+            "MATERIAL":"diffuse_white",
+            "TRANS":[0.0,5.0,-5.0],
+            "ROTAT":[0.0,90.0,0.0],
+            "SCALE":[0.01,10.0,10.0]
+        },
+        {
+            "TYPE":"cube",
+            "MATERIAL":"diffuse_red",
+            "TRANS":[-5.0,5.0,0.0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[0.01,10.0,10.0]
+        },
+        {
+            "TYPE":"cube",
+            "MATERIAL":"diffuse_green",
+            "TRANS":[5.0,5.0,0.0],
+            "ROTAT":[0.0,0.0,0.0],
+            "SCALE":[0.01,10.0,10.0]
+        },
+        {
             "TYPE":"mesh",
             "MATERIAL":"diffuse_white",
             "FILE":"../scenes/suzanne.obj",
-            "TRANS":[0.0,4.1,1.0],
+            "TRANS":[0.0,4.1,-0.5],
             "ROTAT":[-15.0,0.0,0.0],
-            "SCALE":[0.3,0.3,0.3]
+            "SCALE":[0.35,0.35,0.35]
         },
         {
             "TYPE":"cube",
             "MATERIAL":"light",
             "TRANS":[5.0,5.0,5.0],
             "ROTAT":[0.0,0.0,0.0],
-            "SCALE":[0.2,2.0,2.0]
+            "SCALE":[0.2,2.0,3.0]
         }
     ]
 }

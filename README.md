@@ -17,6 +17,7 @@ CUDA Path Tracer
 ### Basic BSDF
 ![Basic BSDF](img/basicBsdf.png)
 <center>'Suzanne.obj'</center> 
+
 Implemented a unified shading kernel supporting multiple material types.
 -  BSDF Evaluation Shading Kernel 
 ```
@@ -71,7 +72,7 @@ Implementation: u01(rng) generates random offsets in [0,1) range for ray generat
     <td><img src="img/part2_02.png" alt="block size 128 chart 2"></td>
   </tr>
 </table>
-<center>'cornell_suzanne.json，'</center> 
+<center>cornell_suzanne.json</center> 
 <center>"LENS_RADIUS" and "FOCAL_DISTANCE"</center> 
 
 ```
