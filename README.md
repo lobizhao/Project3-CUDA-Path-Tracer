@@ -111,6 +111,13 @@ Implementation: u01(rng) generates random offsets in [0,1) range for ray generat
   Scene Integration: Meshes are loaded via JSON configuration and transformed to world coordinates using transformation matrices. Normal vectors are properly transformed using inverse transpose matrices to maintain correct lighting calculations.
 
 - BVH Acceleration Structure (BVH Construction - src/bvh.cpp)
+  <div align="center">
+    <img src="img/USE_BVH.png" alt="Part 1 Reflection">
+    <br>
+    suzanne.obj - 16689 triangles
+
+    Manny_Skm.obj - 73184 triangles
+  </div>
 
   Built using Surface Area Heuristic for optimal partitioning. Combines both primitive geometry (spheres, cubes) and triangle meshes into a unified acceleration structure. Uses 12-bucket SAH evaluation to minimize intersection cost.
 
@@ -159,6 +166,12 @@ Implementation: u01(rng) generates random offsets in [0,1) range for ray generat
   </tr>
 </table>
 
+<div align="center">
+  <img src="img/COMPACTION.png" alt="Part 1 Reflection">
+  <br>
+  suzanne.json & Blue_stripe.hdr
+</div>
+
 
 **Path Termination Detection** 
 
@@ -180,6 +193,85 @@ if (depth % 2 == 1 || depth == traceDepth - 1) {
 }
 #endif
 ```
-#### analysis
+
+### BETTER_RANDOM
+
+- Enhanced random number generator providing improved distribution quality and performance optimization
+
+```
+Control: #define BETTER_RANDOM 1 (currently enabled)
+
+Original Method: utilhash() - Simple bit-manipulation hash function
+int h = utilhash((1 << 31) | (depth << 22) | iter) ^ utilhash(index);
+
+Improved Method: fastHash() - Optimized 32-bit hash algorithm
+uint32_t seed = index + (iter << 16) + (depth << 8);
+return thrust::default_random_engine(fastHash(seed));
+
+Performance Gains: Reduces hash collisions, provides more uniform random distribution
+Applications: Ray generation, material sampling, antialiasing, depth of field effects
+```
+
+- 改进的随机数生成器，提供更好的随机性分布和性能优化
+
+```
+控制开关: #define BETTER_RANDOM 1 (当前启用)
+
+原始方法: utilhash() - 基于位操作的简单哈希函数
+int h = utilhash((1 << 31) | (depth << 22) | iter) ^ utilhash(index);
+
+改进方法: fastHash() - 优化的32位哈希算法
+uint32_t seed = index + (iter << 16) + (depth << 8);
+return thrust::default_random_engine(fastHash(seed));
+
+性能提升: 减少哈希冲突，提供更均匀的随机数分布
+应用场景: 光线生成、材质采样、抗锯齿、景深效果等所有需要随机数的场景
+```
+
+- 改进的随机数生成器，提供更好的随机性分布和性能优化
+
+```
+控制开关: #define BETTER_RANDOM 1 (当前启用)
+
+原始方法: utilhash() - 基于位操作的简单哈希函数
+int h = utilhash((1 << 31) | (depth << 22) | iter) ^ utilhash(index);
+
+改进方法: fastHash() - 优化的32位哈希算法
+uint32_t seed = index + (iter << 16) + (depth << 8);
+return thrust::default_random_engine(fastHash(seed));
+
+性能提升: 减少哈希冲突，提供更均匀的随机数分布
+应用场景: 光线生成、材质采样、抗锯齿、景深效果等所有需要随机数的场景
+```
+
+### Russian Roulette Ray Termination
+
+- 实现概率性路径终止优化，减少低贡献光线的计算开销
+
+```
+终止阈值: 当 remainingBounces < 3 时应用
+存活概率: 80% 继续追踪 (20% 终止)
+重要性加权: 存活光线乘以 1.25f 保持无偏估计
+控制开关: #define RUSSIAN_ROULETTE 0 (当前禁用)
+```
+
 ### Summary
+
+## Bloopers
+
+<div align="center">
+  <img src="img/errorScatter.png" alt="Part 1 Reflection">
+  <br>
+  Ray scatter
+</div>
+
+<div align="center">
+  <img src="img/errorGlass.png" alt="Part 1 Reflection" width="500" height="500">
+  <br>
+  Glass material error
+</div>
+
+
+
+
 
