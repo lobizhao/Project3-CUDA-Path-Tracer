@@ -211,58 +211,25 @@ return thrust::default_random_engine(fastHash(seed));
 Performance Gains: Reduces hash collisions, provides more uniform random distribution
 Applications: Ray generation, material sampling, antialiasing, depth of field effects
 ```
-
-- 改进的随机数生成器，提供更好的随机性分布和性能优化
-
-```
-控制开关: #define BETTER_RANDOM 1 (当前启用)
-
-原始方法: utilhash() - 基于位操作的简单哈希函数
-int h = utilhash((1 << 31) | (depth << 22) | iter) ^ utilhash(index);
-
-改进方法: fastHash() - 优化的32位哈希算法
-uint32_t seed = index + (iter << 16) + (depth << 8);
-return thrust::default_random_engine(fastHash(seed));
-
-性能提升: 减少哈希冲突，提供更均匀的随机数分布
-应用场景: 光线生成、材质采样、抗锯齿、景深效果等所有需要随机数的场景
-```
-
-- 改进的随机数生成器，提供更好的随机性分布和性能优化
-
-```
-控制开关: #define BETTER_RANDOM 1 (当前启用)
-
-原始方法: utilhash() - 基于位操作的简单哈希函数
-int h = utilhash((1 << 31) | (depth << 22) | iter) ^ utilhash(index);
-
-改进方法: fastHash() - 优化的32位哈希算法
-uint32_t seed = index + (iter << 16) + (depth << 8);
-return thrust::default_random_engine(fastHash(seed));
-
-性能提升: 减少哈希冲突，提供更均匀的随机数分布
-应用场景: 光线生成、材质采样、抗锯齿、景深效果等所有需要随机数的场景
-```
-
 ### Russian Roulette Ray Termination
-
-- 实现概率性路径终止优化，减少低贡献光线的计算开销
-
+- Implemented probabilistic path termination optimization to reduce computational overhead for low-contribution rays
 ```
-终止阈值: 当 remainingBounces < 3 时应用
-存活概率: 80% 继续追踪 (20% 终止)
-重要性加权: 存活光线乘以 1.25f 保持无偏估计
-控制开关: #define RUSSIAN_ROULETTE 0 (当前禁用)
+Termination Threshold : Applied when remainingBounces < 3
+
+Survival Probability : 80% chance to continue (20% termination)
+
+Importance Weighting : Surviving rays scaled by 1.25f to maintain unbiased estimation
+
+Control : Toggleable via #define RUSSIAN_ROULETTE 0 (currently disabled)
 ```
 
-### Summary
+
 
 ## Bloopers
-
 <div align="center">
   <img src="img/errorScatter.png" alt="Part 1 Reflection">
   <br>
-  Ray scatter
+  BSDF Sampling Implementation Errors. Incorrect cosine-weighted sampling implementation in calculateRandomDirectionInHemisphere().
 </div>
 
 <div align="center">
